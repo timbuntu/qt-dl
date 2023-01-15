@@ -18,6 +18,8 @@ set(PROJECT_SOURCES
         main.cpp
         mainwindow.cpp
         mainwindow.h
+        downloader.h
+        downloader.cpp
         ${TS_FILES}
 )
 

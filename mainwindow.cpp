@@ -1,14 +1,8 @@
 #include "mainwindow.h"
-#include <QJsonDocument>
-#include <QJsonObject>
-#include <QJsonArray>
+#include <QApplication>
+#include <QEventLoop>
+#include <QStatusBar>
 #include <iostream>
-
-// TODO Properly handle
-const QString MainWindow::DL_EXE[] = {
-    "yt-dlp",
-    "youtube-dl"
-};
 
 MainWindow::MainWindow(QWidget *parent)
     : QMainWindow(parent)
@@ -20,17 +14,27 @@ MainWindow::MainWindow(QWidget *parent)
 
     this->initSourceSelection();
     this->initButtons();
-    this->dlProcess = new QProcess(this);
+    this->initProgressFooter();
+
+    this->downloadThread = new QThread(this);
+    this->downloader = new Downloader(this->statusBar(), this->progressBar, this);
+    this->downloader->moveToThread(this->downloadThread);
+    connect(this, &MainWindow::urlChanged, this->downloader, &Downloader::fetchFormats, Qt::QueuedConnection);
+    connect(this->downloader, &Downloader::formatsFetched, this, &MainWindow::setAvailableFormats, Qt::QueuedConnection);
+    connect(this, &MainWindow::startDownload, this->downloader, &Downloader::startDownload, Qt::QueuedConnection);
+    this->downloadThread->start();
+
+    this->setMinimumSize(360, 240);
 }
 
 void MainWindow::initSourceSelection(void) {
-    this->sourceGroupBox = new QGroupBox(tr("Download Settings1"));
+    this->sourceGroupBox = new QGroupBox(tr("Download Settings"));
     this->sourceSelectionLayout = new QVBoxLayout(this->sourceGroupBox);
     this->mainLayout->addWidget(this->sourceGroupBox);
-    // Add url field
+    // Add url fieldabout 2 hours
     this->urlEdit = new QLineEdit();
     this->urlEdit->setPlaceholderText(tr("Url"));
-    connect(this->urlEdit, &QLineEdit::editingFinished, this, &MainWindow::updateAvailableQualities);
+    connect(this->urlEdit, &QLineEdit::editingFinished, this, &MainWindow::updateUrl);
     this->sourceSelectionLayout->addWidget(this->urlEdit);
     // Add quality selector
     this->qualitySelection = new QComboBox();
@@ -42,43 +46,47 @@ void MainWindow::initSourceSelection(void) {
 }
 
 void MainWindow::initButtons(void) {
-    this->hGroupBox = new QGroupBox(tr("Buttons"));
+    this->hGroupBox = new QGroupBox();
     this->mainLayout->addWidget(this->hGroupBox);
     this->buttonLayout = new QHBoxLayout(this->hGroupBox);
     this->cancelButton = new QPushButton(tr("Close"));
-    this->okButton = new QPushButton(tr("OK"));
+    this->okButton = new QPushButton(tr("Download"));
     connect(this->cancelButton, &QPushButton::clicked, this, &QMainWindow::close);
+    connect(this->okButton, &QPushButton::clicked, this, &MainWindow::requestDownload);
     this->buttonLayout->addWidget(this->cancelButton);
     this->buttonLayout->addWidget(this->okButton);
 }
 
-void MainWindow::updateAvailableQualities(void) {
-    this->qualitySelection->clear();
-    this->dlProcess->start(MainWindow::DL_EXE[0], {"-J", this->urlEdit->text()});
-    this->dlProcess->waitForFinished();
-    QByteArray rawJson = this->dlProcess->readAllStandardOutput();
-    QJsonDocument json = QJsonDocument::fromJson(rawJson);
-    if(json.isNull()) {
-        std::cout << "Failed parsing " << MainWindow::DL_EXE[0].toStdString() << " output:" << std::endl;
-        std::cout << rawJson.toStdString() << std::endl;
-        std::cout << this->dlProcess->readAllStandardError().toStdString() << std::endl;
-        return;
-    }
-    QJsonArray formats = json.object().value("formats").toArray();
-    for(const QJsonValue& format : formats) {
-        QJsonObject formatObj = format.toObject();
-        QString formatId = formatObj.value("format_id").toString();
-        QString container = formatObj.value("ext").toString();
-        QString vCodec = formatObj.value("vcodec").toString();
-        QString aCodec = formatObj.value("acodec").toString();
-        QString resolution = formatObj.value("resolution").toString();
-        std::cout << formatId.toStdString() << ": " << vCodec.toStdString() << "+" << aCodec.toStdString() << " " << resolution.toStdString() << std::endl;
+void MainWindow::initProgressFooter(void) {
+    this->statusBar()->setSizeGripEnabled(false);
+    this->progressBar = new QProgressBar();
+    this->statusBar()->addPermanentWidget(this->progressBar);
+    this->statusBar()->showMessage(tr("Waiting for URL"));
+}
 
-        if(vCodec.compare("none")) {
-            this->qualitySelection->insertItem(0, resolution + " " + container + " (" + vCodec + ", " + aCodec + ")", formatId);
-        }
+void MainWindow::updateUrl(void) {
+    const QString& url = this->urlEdit->text();
+    if(url.isEmpty()) {
+        this->downloader->setUrl("");
+        this->qualitySelection->clear();
+    } else if(this->downloader->getUrl().compare(url) != 0) {
+        std::cout << "Url changed" << std::endl;
+        emit this->urlChanged(url);
+    }
+}
+
+void MainWindow::setAvailableFormats(const QMap<int, QString> formats) {
+    this->qualitySelection->clear();
+    std::cout << "Setting " << formats.size() << " available formats..." << std::endl;
+    for(auto format = formats.begin(); format != formats.end(); format++) {
+        this->qualitySelection->insertItem(0, format.value(), format.key());
     }
     this->qualitySelection->setPlaceholderText(nullptr);
+}
+
+void MainWindow::requestDownload(void) {
+    std::cout << "Download requested" << std::endl;
+    emit this->startDownload(this->qualitySelection->currentData().toInt(), this->audioOnlyCheckbox->isChecked());
 }
 
 MainWindow::~MainWindow()

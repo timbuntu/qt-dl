@@ -10,7 +10,10 @@
 #include <QCheckBox>
 #include <QPushButton>
 #include <QButtonGroup>
-#include <QProcess>
+#include <QProgressBar>
+#include <QThread>
+
+#include "downloader.h"
 
 class MainWindow : public QMainWindow
 {
@@ -28,19 +31,28 @@ class MainWindow : public QMainWindow
     QButtonGroup* buttons = nullptr;
     QPushButton* okButton = nullptr;
     QPushButton* cancelButton = nullptr;
-    QProcess* dlProcess = nullptr;
-
-    static const QString DL_EXE[];
+    QProgressBar* progressBar = nullptr;
+    Downloader* downloader = nullptr;
+    QThread* downloadThread = nullptr;
 
 public:
     MainWindow(QWidget *parent = nullptr);
     ~MainWindow();
 
+
 public slots:
-    void updateAvailableQualities(void);
+    void updateUrl(void);
+    void setAvailableFormats(const QMap<int, QString> formats);
+    //void updateAvailableQualities(int exitCode, QProcess::ExitStatus exitStatus);
+    void requestDownload(void);
+
+signals:
+    void urlChanged(const QString& url);
+    void startDownload(const int format, const bool audioOnly);
 
 private:
     void initSourceSelection(void);
     void initButtons(void);
+    void initProgressFooter(void);
 };
 #endif // MAINWINDOW_H
