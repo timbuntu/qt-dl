@@ -15,7 +15,6 @@ class Downloader : public QObject
     QStatusBar* statusBar;
     QProgressBar* progressBar;
     QString url;
-    unsigned long total_bytes;
     unsigned long received_percent;
 
     static const QString DL_EXE[];

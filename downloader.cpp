@@ -85,12 +85,10 @@ void Downloader::startDownload(const int format, const bool audioOnly) {
 
 void Downloader::processOutputReady(void) {
     QByteArray rawJson = this->dlProcess->readLine(2048);
-    if(this->total_bytes == 0) {
-        this->total_bytes = strtol(rawJson.data() + rawJson.indexOf('/') + 2, nullptr, 10);
-    }
-    int bytes = strtoul(rawJson.data()+2, nullptr, 10);
-    unsigned long current_percent = (bytes / (double)this->total_bytes) * 100;
-    std::cout << "Received " << current_percent << "% " << bytes << " / " << this->total_bytes << std::endl;
+    int received = strtoul(rawJson.data()+2, nullptr, 10);
+    int total = strtol(rawJson.data() + rawJson.indexOf('/') + 2, nullptr, 10);
+    unsigned long current_percent = (received / (double)total) * 100;
+    std::cout << "Received " << current_percent << "% = " << received << " / " << total << std::endl;
     if(this->received_percent != current_percent) {
         this->progressBar->setValue(current_percent);
         this->received_percent = current_percent;

@@ -24,7 +24,7 @@
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="downloader.cpp" line="102"/>
+        <location filename="downloader.cpp" line="100"/>
         <source>Download finished</source>
         <translation type="unfinished"></translation>
     </message>
