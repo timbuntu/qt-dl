@@ -34,6 +34,7 @@ class MainWindow : public QMainWindow
     QProgressBar* progressBar = nullptr;
     Downloader* downloader = nullptr;
     QThread* downloadThread = nullptr;
+    QString outputDir = "";
 
 public:
     MainWindow(QWidget *parent = nullptr);
@@ -48,7 +49,7 @@ public slots:
 
 signals:
     void urlChanged(const QString& url);
-    void startDownload(const int format, const bool audioOnly);
+    void startDownload(const int format, const bool audioOnly, const QString destFolder);
 
 private:
     void initSourceSelection(void);

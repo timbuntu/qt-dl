@@ -60,11 +60,11 @@ void Downloader::fetchFormats(const QString& url) {
     emit this->formatsFetched(availableFormats);
 }
 
-void Downloader::startDownload(const int format, const bool audioOnly) {
+void Downloader::startDownload(const int format, const bool audioOnly, const QString& destFolder) {
     QStringList args;
     this->progressBar->setRange(0, 0);
     args << "-q" << "--progress" << "--progress-template='%(progress.downloaded_bytes)s / %(progress.total_bytes)s'";
-    args << "--no-colors" << "-f" << QString::number(format) + "+bestaudio";
+    args << "--no-colors" << "-f" << QString::number(format) + "+bestaudio" << "-o" << destFolder + "/%(title)s.%(ext)s";
     args << this->url;
     if(audioOnly)
         args << "-x";

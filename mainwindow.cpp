@@ -3,6 +3,7 @@
 #include <QEventLoop>
 #include <QStatusBar>
 #include <iostream>
+#include <QFileDialog>
 
 MainWindow::MainWindow(QWidget *parent)
     : QMainWindow(parent)
@@ -86,7 +87,8 @@ void MainWindow::setAvailableFormats(const QMap<int, QString> formats) {
 
 void MainWindow::requestDownload(void) {
     std::cout << "Download requested" << std::endl;
-    emit this->startDownload(this->qualitySelection->currentData().toInt(), this->audioOnlyCheckbox->isChecked());
+    this->outputDir = QFileDialog::getExistingDirectory(this, tr("Save location"), this->outputDir);
+    emit this->startDownload(this->qualitySelection->currentData().toInt(), this->audioOnlyCheckbox->isChecked(), this->outputDir);
 }
 
 MainWindow::~MainWindow()

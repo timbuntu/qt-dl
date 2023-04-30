@@ -26,7 +26,7 @@ public:
 public slots:
     void setUrl(const QString& url) {this->url = url;}
     void fetchFormats(const QString& url);
-    void startDownload(const int format, const bool audioOnly);
+    void startDownload(const int format, const bool audioOnly, const QString& destFolder);
 
 private slots:
     void processOutputReady(void);
