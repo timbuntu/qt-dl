@@ -45,6 +45,7 @@ public slots:
     void urlInputChanged(const QString& newText);
     void updateUrl(void);
     void setAvailableFormats(const QMap<int, QString> formats);
+    void audioOnlyToggled(int state);
     void requestDownload(void);
 
 signals:

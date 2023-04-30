@@ -45,6 +45,7 @@ void MainWindow::initSourceSelection(void) {
     this->sourceSelectionLayout->addWidget(this->qualitySelection);
     // Add audio only checkbox
     this->audioOnlyCheckbox = new QCheckBox(tr("Audio only"));
+    connect(this->audioOnlyCheckbox, &QCheckBox::stateChanged, this, &MainWindow::audioOnlyToggled);
     this->sourceSelectionLayout->addWidget(this->audioOnlyCheckbox);
 }
 
@@ -91,6 +92,14 @@ void MainWindow::setAvailableFormats(const QMap<int, QString> formats) {
         this->qualitySelection->insertItem(0, format.value(), format.key());
     }
     this->qualitySelection->setPlaceholderText(nullptr);
+}
+
+void MainWindow::audioOnlyToggled(int state) {
+    if(state == Qt::CheckState::Checked) {
+        this->qualitySelection->setDisabled(true);
+    } else {
+        this->qualitySelection->setDisabled(false);
+    }
 }
 
 void MainWindow::requestDownload(void) {
