@@ -33,7 +33,7 @@ void MainWindow::initSourceSelection(void) {
     this->sourceGroupBox = new QGroupBox(tr("Download Settings"));
     this->sourceSelectionLayout = new QVBoxLayout(this->sourceGroupBox);
     this->mainLayout->addWidget(this->sourceGroupBox);
-    // Add url fieldabout 2 hours
+    // Add url field
     this->urlEdit = new QLineEdit();
     this->urlEdit->setPlaceholderText(tr("Url"));
     connect(this->urlEdit, &QLineEdit::textEdited, this, &MainWindow::urlInputChanged);
