@@ -42,6 +42,7 @@ public:
 
 
 public slots:
+    void urlInputChanged(const QString& newText);
     void updateUrl(void);
     void setAvailableFormats(const QMap<int, QString> formats);
     //void updateAvailableQualities(int exitCode, QProcess::ExitStatus exitStatus);

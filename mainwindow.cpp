@@ -4,6 +4,7 @@
 #include <QStatusBar>
 #include <iostream>
 #include <QFileDialog>
+#include <QClipboard>
 
 MainWindow::MainWindow(QWidget *parent)
     : QMainWindow(parent)
@@ -35,6 +36,7 @@ void MainWindow::initSourceSelection(void) {
     // Add url fieldabout 2 hours
     this->urlEdit = new QLineEdit();
     this->urlEdit->setPlaceholderText(tr("Url"));
+    connect(this->urlEdit, &QLineEdit::textEdited, this, &MainWindow::urlInputChanged);
     connect(this->urlEdit, &QLineEdit::editingFinished, this, &MainWindow::updateUrl);
     this->sourceSelectionLayout->addWidget(this->urlEdit);
     // Add quality selector
@@ -65,13 +67,19 @@ void MainWindow::initProgressFooter(void) {
     this->statusBar()->showMessage(tr("Waiting for URL"));
 }
 
+void MainWindow::urlInputChanged(const QString& newText) {
+    std::cout << "Url input changed to: " << newText.toStdString() << std::endl;
+    if(newText.compare(QGuiApplication::clipboard()->text(QClipboard::Mode::Clipboard)) == 0 || newText.compare(QGuiApplication::clipboard()->text(QClipboard::Mode::Selection)) == 0) {
+        this->updateUrl();
+    }
+}
 void MainWindow::updateUrl(void) {
     const QString& url = this->urlEdit->text();
     if(url.isEmpty()) {
         this->downloader->setUrl("");
         this->qualitySelection->clear();
     } else if(this->downloader->getUrl().compare(url) != 0) {
-        std::cout << "Url changed" << std::endl;
+        std::cout << "Emitting urlChanged" << std::endl;
         emit this->urlChanged(url);
     }
 }
