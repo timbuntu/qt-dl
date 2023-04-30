@@ -12,11 +12,9 @@ const QString Downloader::DL_EXE[] = {
     "youtube-dl"
 };
 
-Downloader::Downloader(QStatusBar* statusBar, QProgressBar* progressBar, QObject *parent)
+Downloader::Downloader(QObject *parent)
     : QObject{parent}
 {
-    this->statusBar = statusBar;
-    this->progressBar = progressBar;
 }
 
 void Downloader::fetchFormats(const QString& url) {
@@ -26,8 +24,8 @@ void Downloader::fetchFormats(const QString& url) {
     this->url = url;
     QMap<int, QString> availableFormats;
     this->dlProcess->start(Downloader::DL_EXE[0], {"-J", url});
-    this->statusBar->showMessage(tr("Fetching available formats"));
-    this->progressBar->setRange(0, 0);
+    emit showStatusMessage(tr("Fetching available formats"));
+    emit statusRunning(true);
     this->dlProcess->waitForFinished();
     QByteArray rawJson = this->dlProcess->readAllStandardOutput();
     QJsonDocument json = QJsonDocument::fromJson(rawJson);
@@ -35,8 +33,8 @@ void Downloader::fetchFormats(const QString& url) {
         std::cout << "Failed parsing " << Downloader::DL_EXE[0].toStdString() << " output:" << std::endl;
         std::cout << rawJson.toStdString() << std::endl;
         std::cout << this->dlProcess->readAllStandardError().toStdString() << std::endl;
-        this->statusBar->showMessage(tr("Error fetching"));
-        this->progressBar->setRange(0, 100);
+        emit showStatusMessage(tr("Error fetching"));
+        emit statusRunning(false);
         return;
     }
     QJsonArray formats = json.object().value("formats").toArray();
@@ -54,15 +52,16 @@ void Downloader::fetchFormats(const QString& url) {
 
         availableFormats.insert(formatId, resolution + " " + container + " (" + vCodec + ", " + aCodec + ")");
     }
-    this->progressBar->setRange(0, 100);
-    this->statusBar->showMessage(tr("Ready"));
 
-    emit this->formatsFetched(availableFormats);
+    emit statusRunning(false);
+    emit showStatusMessage(tr("Ready"));
+    emit formatsFetched(availableFormats);
+    std::cout << "Emitted formatsFetched" << std::endl;
 }
 
 void Downloader::startDownload(const int format, const bool audioOnly, const QString& destFolder) {
     QStringList args;
-    this->progressBar->setRange(0, 0);
+    emit statusRunning(true);
     args << "-q" << "--progress" << "--progress-template='%(progress.downloaded_bytes)s / %(progress.total_bytes)s'";
     args << "--no-colors" << "-f" << QString::number(format) + "+bestaudio" << "-o" << destFolder + "/%(title)s.%(ext)s";
     args << this->url;
@@ -78,26 +77,38 @@ void Downloader::startDownload(const int format, const bool audioOnly, const QSt
     connect(this->dlProcess, &QProcess::readyReadStandardOutput, this, &Downloader::processOutputReady);
     connect(this->dlProcess, SIGNAL(finished(int,QProcess::ExitStatus)), this, SLOT(downloadFinished(int,QProcess::ExitStatus)));
     this->dlProcess->start(Downloader::DL_EXE[0], args);
-    this->statusBar->showMessage(tr("Downloading"));
+    emit showStatusMessage(tr("Downloading"));
     std::cout << "Downloading..." << std::endl;
-    this->progressBar->setRange(0, 100);
+    emit statusRunning(false);
 }
 
 void Downloader::processOutputReady(void) {
+    static bool running = false;
     QByteArray rawJson = this->dlProcess->readLine(2048);
     int received = strtoul(rawJson.data()+2, nullptr, 10);
     int total = strtol(rawJson.data() + rawJson.indexOf('/') + 2, nullptr, 10);
-    unsigned long current_percent = (received / (double)total) * 100;
-    std::cout << "Received " << current_percent << "% = " << received << " / " << total << std::endl;
-    if(this->received_percent != current_percent) {
-        this->progressBar->setValue(current_percent);
-        this->received_percent = current_percent;
+    if(total != 0) {
+        if(running)
+            emit statusRunning(false);
+        unsigned long current_percent = (received / (double)total) * 100;
+        std::cout << "Raw: " << rawJson.toStdString() << std::endl;
+        std::cout << "Received " << current_percent << "% = " << received << " / " << total << std::endl;
+        if(this->received_percent != current_percent) {
+            emit progressUpdate(current_percent);
+            this->received_percent = current_percent;
+        }
+    } else {
+        if(!running) {
+            emit statusRunning(true);
+        }
     }
     QApplication::processEvents();
 }
 
 void Downloader::downloadFinished(int exitCode, QProcess::ExitStatus exitStatus) {
-    this->statusBar->showMessage(tr("Download finished"));
-    this->progressBar->setValue(this->progressBar->maximum());
+    std::cout << "Download finished" << std::endl;
+    emit showStatusMessage(tr("Download finished"));
+    emit statusRunning(false);
+    emit progressUpdate(100);
     emit this->finished();
 }

@@ -19,11 +19,16 @@ MainWindow::MainWindow(QWidget *parent)
     this->initProgressFooter();
 
     this->downloadThread = new QThread(this);
-    this->downloader = new Downloader(this->statusBar(), this->progressBar, this);
+    this->downloader = new Downloader();
     this->downloader->moveToThread(this->downloadThread);
-    connect(this, &MainWindow::urlChanged, this->downloader, &Downloader::fetchFormats, Qt::QueuedConnection);
-    connect(this->downloader, &Downloader::formatsFetched, this, &MainWindow::setAvailableFormats, Qt::QueuedConnection);
-    connect(this, &MainWindow::startDownload, this->downloader, &Downloader::startDownload, Qt::QueuedConnection);
+    connect(this, &MainWindow::urlChanged, this->downloader, &Downloader::fetchFormats);
+    connect(this->downloader, &Downloader::showStatusMessage, this, &MainWindow::showStatusMessage);
+    // Needs explicit connection type,
+    // because automatic connection type does not seem to work with arguments that have a templated type
+    connect(this->downloader, &Downloader::formatsFetched, this, &MainWindow::setAvailableFormats, Qt::ConnectionType::QueuedConnection);
+    connect(this->downloader, &Downloader::statusRunning, this, &MainWindow::setStatusRunning);
+    connect(this->downloader, &Downloader::progressUpdate, this, &MainWindow::setStatusProgress);
+    connect(this, &MainWindow::startDownload, this->downloader, &Downloader::startDownload);
     this->downloadThread->start();
 
     this->setMinimumSize(360, 240);
@@ -108,6 +113,28 @@ void MainWindow::requestDownload(void) {
     emit this->startDownload(this->qualitySelection->currentData().toInt(), this->audioOnlyCheckbox->isChecked(), this->outputDir);
 }
 
-MainWindow::~MainWindow()
-{
+
+void MainWindow::showStatusMessage(const QString message) {
+    this->statusBar()->showMessage(message);
+}
+
+
+void MainWindow::setStatusRunning(bool running) {
+    if(running) {
+        this->progressBar->setRange(0, 0);
+    } else {
+        this->progressBar->setRange(0, 100);
+    }
+}
+
+void MainWindow::setStatusProgress(unsigned int percent) {
+    if(this->progressBar->maximum() != 100) {
+        this->progressBar->setRange(0, 100);
+    }
+    this->progressBar->setValue(percent);
+}
+
+MainWindow::~MainWindow() {
+    this->downloadThread->quit();
+    this->downloadThread->wait();
 }

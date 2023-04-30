@@ -47,6 +47,10 @@ public slots:
     void setAvailableFormats(const QMap<int, QString> formats);
     void audioOnlyToggled(int state);
     void requestDownload(void);
+    // Input / Output
+    void showStatusMessage(const QString message);
+    void setStatusRunning(bool running);
+    void setStatusProgress(unsigned int percent);
 
 signals:
     void urlChanged(const QString& url);

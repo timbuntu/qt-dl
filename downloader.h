@@ -12,15 +12,13 @@ class Downloader : public QObject
     Q_OBJECT
 
     QProcess* dlProcess = nullptr;
-    QStatusBar* statusBar;
-    QProgressBar* progressBar;
     QString url;
     unsigned long received_percent;
 
     static const QString DL_EXE[];
 
 public:
-    explicit Downloader(QStatusBar* statusBar, QProgressBar* progressBar, QObject *parent = nullptr);
+    explicit Downloader(QObject *parent = nullptr);
     QString getUrl(void)  {return this->url;}
 
 public slots:
@@ -33,7 +31,10 @@ private slots:
     void downloadFinished(int exitCode, QProcess::ExitStatus exitStatus);
 
 signals:
-    void formatsFetched(QMap<int, QString> formats);
+    void statusRunning(bool running);
+    void showStatusMessage(const QString& message);
+    void formatsFetched(const QMap<int, QString> formats);
+    void progressUpdate(const int newPercentage);
     void finished(void);
 };
 
