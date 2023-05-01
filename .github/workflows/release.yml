@@ -44,3 +44,4 @@ jobs:
       with:
         files: build/qt-dl
         generate_release_notes: true
+        prerelease: contains(github.ref, 'v0.')
