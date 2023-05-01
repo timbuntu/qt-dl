@@ -38,3 +38,9 @@ jobs:
         path: build/qt-dl
         if-no-files-found: error
         retention-days: 0
+
+    - name: Create Release
+      uses: softprops/action-gh-release@v1
+      with:
+        files: build/qt-dl
+        generate_release_notes: true
